@@ -26,6 +26,17 @@ var installing sync.Mutex
 // rather than report the update as failed.
 var ErrInstalling = errors.New("update: an install is already running")
 
+// The owner's assembled bench rootfs carries this marker until its signed job
+// engine and release path are qualified. It must refuse installs before downloads
+// or writes, including Home Assistant and overnight update requests.
+var benchPolicyPath = "/etc/techo5/fleet-bench"
+var ErrBenchInstallDisabled = errors.New("updates are disabled for this bench build")
+
+func benchInstallDisabled() bool {
+	_, err := os.Stat(benchPolicyPath)
+	return err == nil
+}
+
 // Nothing is written to /system until the download has been fetched whole and its hash checked. What
 // this replaces is kept as echod.prev, which is what the boot hook restores if the new one never gets
 // far enough to be believed.
@@ -44,6 +55,9 @@ func Installing() bool {
 // what arrived, the three-second countdown, and then the restart or the reboot itself — so a display
 // can show them rather than a bar stuck at 100%.
 func Install(ctx context.Context, m Manifest, progress func(float32), phase func(string)) error {
+	if benchInstallDisabled() {
+		return ErrBenchInstallDisabled
+	}
 	if !installing.TryLock() {
 		return ErrInstalling
 	}
@@ -254,6 +268,9 @@ func copyTo(from, to string) error {
 // architecture when it boots from slots, a binary otherwise. A release made for another device (the
 // Show's, seen from a Dot) is then not offered at all, rather than offered and failing on install.
 func (m Manifest) Serves() bool {
+	if benchInstallDisabled() {
+		return false
+	}
 	return m.serves(slotSystem())
 }
 
