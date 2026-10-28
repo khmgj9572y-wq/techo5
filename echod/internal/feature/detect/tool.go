@@ -7,8 +7,8 @@ import (
 )
 
 // Detector is one microWakeWord model on the feature front end the daemon would run it on, for the
-// tools that score a wake word outside the engine (echod wake). Unlike the engine it fires on the
-// model's own cutoff. Not safe for concurrent use.
+// tools that score a wake word outside the engine (echod wake). The caller supplies the cutoff
+// explicitly, as the engine does its thresholds. Not safe for concurrent use.
 type Detector struct {
 	det   *microwakeword.Detector
 	front *microFront // nil: the detector's own front end, zserge's

@@ -46,6 +46,10 @@ func newWakeCmd() *cobra.Command {
 			// Same selection the agent uses: Home Assistant's, via the saved config.
 			m := wake.Pick(models, config.Get().Wake.Slot(0).ID)
 
+			// Model discovery deliberately leaves the cutoff unset: the daemon uses
+			// the user's slot threshold. The diagnostic must do the same, or a zero
+			// cutoff reports silence as a wake on every settled frame.
+			m.Config.ProbabilityCutoff = config.Get().Wake.Slot(0).Threshold
 			det, err := detect.NewDetector(m.Config)
 			if err != nil {
 				return err
